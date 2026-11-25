@@ -20,7 +20,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("QuickBank API")
                         .version("0.1.0")
-                        .description("Account, deposit, transfer, and statement calls. Paths under /api/** stay behind a Keycloak JWT with the CLIENT realm role."))
+                        .description("Account, deposit, transfer, and statement calls stay behind a Keycloak JWT with the CLIENT realm role. POST /api/auth/login, /api/auth/registrations, and /api/auth/refresh are public."))
                 .components(new Components().addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")

@@ -166,6 +166,9 @@ services:
       KEYCLOAK_AUTHORIZATION_URI: http://localhost:8080/realms/quickbank/protocol/openid-connect/auth
       KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/quickbank/protocol/openid-connect/token
       KEYCLOAK_USERINFO_URI: http://keycloak:8080/realms/quickbank/protocol/openid-connect/userinfo
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       OTLP_METRICS_ENDPOINT: http://otel-collector:4318/v1/metrics
       DT_TENANT: ${DT_TENANT:-}

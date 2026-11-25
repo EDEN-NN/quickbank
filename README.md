@@ -46,6 +46,14 @@ Realm Keycloak `quickbank`, importado de `docker/keycloak/quickbank-realm.json` 
 
 A interface server-rendered é um cliente OAuth2 authorization code. Entrar a partir de `/` vai ao Keycloak e volta para `/account`. A API é um resource server: JWT sem sessão, `Authorization: Bearer`. Chamadas do navegador e chamadas da API usam cadeias de filtros de segurança separadas. O issuer no token é `http://localhost:8080/realms/quickbank`. Dentro do Compose a aplicação carrega as chaves de `http://keycloak:8080/.../certs` para não precisar chamar o próprio localhost.
 
+`POST /api/auth/registrations` cria o usuário no Keycloak com o papel `CLIENT` e grava a linha em `id_registrations` (usuário, e-mail, nome, sobrenome, id do Keycloak). Nome e sobrenome são obrigatórios: o perfil do realm recusa o token sem eles. A senha não fica no MySQL. E-mail já existente responde 409 `email-already-registered`. Usuário já existente responde 409 `registration-rejected`, com o mesmo texto genérico e sem dizer que o usuário existe. `POST /api/auth/login` usa o grant de senha do cliente `quickbank-web` e, se falhar, responde 401 `sign-in-failed` com um corpo genérico. Os spans são `quickbank.identity.register` e `quickbank.identity.sign-in`. Os logs são `registration accepted`, `registration rejected reason=...` e `sign-in accepted` / `sign-in rejected`. A senha não entra no log.
+
+```bash
+curl -s -X POST http://localhost:8088/api/auth/registrations \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"carol","email":"carol@quickbank.local","firstName":"Carol","lastName":"Lima","password":"carol-pass"}'
+```
+
 Token para curl:
 
 ```bash
@@ -76,13 +84,14 @@ Erros são `application/problem+json`. Fundos insuficientes é 422, conta descon
 
 `quickbank-web/` é uma aplicação Angular separada. Ela não substitui as páginas renderizadas no servidor na porta 8088. As duas falam com a mesma API.
 
-O login é authorization code do Keycloak com PKCE. Não há formulário de senha na aplicação. O cliente público é `quickbank-spa`, no realm `quickbank`. O cliente confidencial `quickbank-web` fica com a interface Thymeleaf, porque um bundle de navegador não pode guardar esse segredo. Os usuários continuam `ana` / `ana` e `bruno` / `bruno`, com o papel de realm `CLIENT`. O issuer é `http://localhost:8080/realms/quickbank`. Depois que o Keycloak redireciona de volta, a aplicação envia o access token em `Authorization: Bearer`.
+A página inicial envia usuário e senha para `POST /api/auth/login` e o cadastro para `POST /api/auth/registrations`. A API fala com o Keycloak; o bundle não guarda o segredo de `quickbank-web`. O cliente público `quickbank-spa` continua no realm `quickbank` para authorization code com PKCE. Os usuários continuam `ana` / `ana` e `bruno` / `bruno`, com o papel de realm `CLIENT`. O issuer é `http://localhost:8080/realms/quickbank`. A aplicação envia o access token em `Authorization: Bearer`.
 
 A URL base da API e o host do Keycloak estão em `quickbank-web/src/environments/environment.ts` (e em `environment.production.ts` no `ng build`). Os dois usam as portas que o Compose publica no host: API `http://localhost:8088`, Keycloak `http://localhost:8080`. O navegador chama essas portas direto, então os valores são os mesmos no `ng serve` e na imagem nginx.
 
 | Tela | Chamadas |
 | --- | --- |
-| Login | Endpoint de autorização do Keycloak para o cliente `quickbank-spa` |
+| Entrada | `POST /api/auth/login` |
+| Cadastro | `POST /api/auth/registrations` |
 | Conta, ainda sem conta | `POST /api/accounts` |
 | Conta | `GET /api/accounts/me`, `GET /api/accounts/me/statement` |
 | Depósito | `POST /api/accounts/me/deposits` com `Idempotency-Key`, depois `GET /api/deposits/{id}` até o status ser `POSTED` |

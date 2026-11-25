@@ -95,6 +95,13 @@ quickbank:
     # which is the in-network address when running under Compose.
     issuer: ${QUICKBANK_ISSUER:http://localhost:8080/realms/quickbank}
     jwk-set-uri: ${QUICKBANK_JWK_SET_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/certs}
+  identity:
+    keycloak-base-url: ${KEYCLOAK_BASE_URL:http://localhost:8080}
+    realm: ${KEYCLOAK_REALM:quickbank}
+    token-client-id: ${KEYCLOAK_CLIENT_ID:quickbank-web}
+    token-client-secret: ${KEYCLOAK_CLIENT_SECRET:quickbank-web-secret}
+    admin-username: ${KEYCLOAK_ADMIN:admin}
+    admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
 
 management:
   endpoints:
@@ -113,7 +120,7 @@ management:
       application: quickbank
 
 springdoc:
-  packages-to-scan: com.quickbank.account.api,com.quickbank.ledger.api
+  packages-to-scan: com.quickbank.account.api,com.quickbank.ledger.api,com.quickbank.bootstrap.identity
   override-with-generic-response: false
   api-docs:
     path: /v3/api-docs
