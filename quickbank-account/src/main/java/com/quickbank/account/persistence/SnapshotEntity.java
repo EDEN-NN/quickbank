@@ -61,6 +61,10 @@ public class SnapshotEntity {
         return creditLimit;
     }
 
+    public void setCreditLimit(BigDecimal creditLimit) {
+        this.creditLimit = creditLimit;
+    }
+
     public BigDecimal getCreditUsed() {
         return creditUsed;
     }

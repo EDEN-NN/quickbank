@@ -69,4 +69,10 @@ public class RegistrationEntity {
     public String keycloakUserId() {
         return keycloakUserId;
     }
+
+    public void rename(String email, String firstName, String lastName) {
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }

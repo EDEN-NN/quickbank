@@ -28,6 +28,9 @@ public class AccountEntity {
     @Column(name = "credit_limit", nullable = false, precision = 19, scale = 2)
     private BigDecimal creditLimit;
 
+    @Column(name = "credit_limit_max", nullable = false, precision = 19, scale = 2)
+    private BigDecimal creditLimitMax;
+
     @Column(name = "opened_at", nullable = false)
     private Instant openedAt;
 
@@ -40,6 +43,7 @@ public class AccountEntity {
             String ownerEmail,
             String ownerName,
             BigDecimal creditLimit,
+            BigDecimal creditLimitMax,
             Instant openedAt
     ) {
         this.accountNumber = accountNumber;
@@ -47,6 +51,7 @@ public class AccountEntity {
         this.ownerEmail = ownerEmail;
         this.ownerName = ownerName;
         this.creditLimit = creditLimit;
+        this.creditLimitMax = creditLimitMax;
         this.openedAt = openedAt;
     }
 
@@ -68,6 +73,19 @@ public class AccountEntity {
 
     public BigDecimal getCreditLimit() {
         return creditLimit;
+    }
+
+    public void setCreditLimit(BigDecimal creditLimit) {
+        this.creditLimit = creditLimit;
+    }
+
+    public BigDecimal getCreditLimitMax() {
+        return creditLimitMax;
+    }
+
+    public void renameOwner(String ownerName, String ownerEmail) {
+        this.ownerName = ownerName;
+        this.ownerEmail = ownerEmail;
     }
 
     public Instant getOpenedAt() {

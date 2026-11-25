@@ -19,6 +19,11 @@ class JpaRegistrationLookup implements RegistrationLookup {
     }
 
     @Override
+    public boolean emailTakenByOther(String email, String keycloakUserId) {
+        return registrations.existsByEmailAndKeycloakUserIdNot(email, keycloakUserId);
+    }
+
+    @Override
     public boolean usernameTaken(String username) {
         return registrations.existsByUsername(username);
     }
@@ -31,5 +36,18 @@ class JpaRegistrationLookup implements RegistrationLookup {
         } catch (DataIntegrityViolationException ex) {
             throw RegistrationFailures.fromConstraint(String.valueOf(ex.getMostSpecificCause().getMessage()));
         }
+    }
+
+    @Override
+    @Transactional
+    public void updateContact(String keycloakUserId, String email, String firstName, String lastName) {
+        registrations.findByKeycloakUserId(keycloakUserId).ifPresent(entity -> {
+            entity.rename(email, firstName, lastName);
+            try {
+                registrations.saveAndFlush(entity);
+            } catch (DataIntegrityViolationException ex) {
+                throw RegistrationFailures.fromConstraint(String.valueOf(ex.getMostSpecificCause().getMessage()));
+            }
+        });
     }
 }

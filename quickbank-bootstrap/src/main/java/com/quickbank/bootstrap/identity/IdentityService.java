@@ -1,5 +1,6 @@
 package com.quickbank.bootstrap.identity;
 
+import com.quickbank.bootstrap.identity.IdentityDirectory.StoredProfile;
 import com.quickbank.bootstrap.identity.IdentityDirectory.TokenSet;
 import com.quickbank.common.trace.QuickBankSpans;
 import org.slf4j.Logger;
@@ -81,6 +82,43 @@ public class IdentityService {
                     log.info("registration accepted username={}", username);
                     bag.attribute("registration.result", "accepted");
                     return username;
+                });
+    }
+
+    public StoredProfile profile(String userId) {
+        return spans.run(
+                "quickbank.identity.profile",
+                Map.of("module", "identity", "operation", "profile-read"),
+                Map.of(),
+                () -> directory.profile(userId));
+    }
+
+    public StoredProfile updateProfile(String userId, String rawEmail, String rawFirstName, String rawLastName) {
+        return spans.run(
+                "quickbank.identity.profile-update",
+                Map.of("module", "identity", "operation", "profile-update"),
+                Map.of(),
+                bag -> {
+                    String email = normalize(rawEmail);
+                    String firstName = personName(rawFirstName);
+                    String lastName = personName(rawLastName);
+                    if (email.length() > 255 || !EMAIL.matcher(email).matches() || !validName(firstName) || !validName(lastName)) {
+                        log.info("profile rejected reason=invalid");
+                        bag.attribute("profile.result", "rejected");
+                        throw new InvalidRegistrationException();
+                    }
+                    StoredProfile current = directory.profile(userId);
+                    if (!email.equals(normalize(current.email()))
+                            && (registrations.emailTakenByOther(email, userId) || directory.emailUsedBySomeoneElse(email, userId))) {
+                        log.info("profile rejected reason=email_exists");
+                        bag.attribute("profile.result", "rejected");
+                        throw new EmailAlreadyRegisteredException();
+                    }
+                    directory.updateProfile(userId, email, firstName, lastName);
+                    registrations.updateContact(userId, email, firstName, lastName);
+                    log.info("profile updated username={}", current.username());
+                    bag.attribute("profile.result", "accepted");
+                    return new StoredProfile(current.id(), current.username(), email, firstName, lastName);
                 });
     }
 

@@ -2,6 +2,9 @@ package com.quickbank.bootstrap.identity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.quickbank.common.error.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -49,6 +52,71 @@ class KeycloakIdentityClient implements IdentityDirectory {
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean emailUsedBySomeoneElse(String email, String userId) {
+        for (UserHit hit : search("email", email)) {
+            if (hit.email() != null && hit.email().equalsIgnoreCase(email) && hit.id() != null && !hit.id().equals(userId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public StoredProfile profile(String userId) {
+        try {
+            UserHit hit = withAdmin(token -> http.get()
+                    .uri("/admin/realms/{realm}/users/{id}", properties.realm(), userId)
+                    .header("Authorization", "Bearer " + token)
+                    .retrieve()
+                    .body(UserHit.class));
+            if (hit == null || hit.id() == null) {
+                throw new NotFoundException("Profile was not found.");
+            }
+            return new StoredProfile(
+                    hit.id(),
+                    hit.username(),
+                    hit.email() == null ? "" : hit.email(),
+                    hit.firstName() == null ? "" : hit.firstName(),
+                    hit.lastName() == null ? "" : hit.lastName());
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new NotFoundException("Profile was not found.");
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public void updateProfile(String userId, String email, String firstName, String lastName) {
+        try {
+            JsonNode user = withAdmin(token -> http.get()
+                    .uri("/admin/realms/{realm}/users/{id}", properties.realm(), userId)
+                    .header("Authorization", "Bearer " + token)
+                    .retrieve()
+                    .body(JsonNode.class));
+            if (user instanceof ObjectNode object) {
+                object.put("email", email);
+                object.put("firstName", firstName);
+                object.put("lastName", lastName);
+            }
+            JsonNode body = user;
+            withAdmin(token -> http.put()
+                    .uri("/admin/realms/{realm}/users/{id}", properties.realm(), userId)
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity());
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 409 && ex.getResponseBodyAsString().toLowerCase(Locale.ROOT).contains("email")) {
+                throw new EmailAlreadyRegisteredException();
+            }
+            log.warn("keycloak profile update failed status={}", ex.getStatusCode().value());
+            throw ex;
+        }
     }
 
     @Override
@@ -325,7 +393,7 @@ class KeycloakIdentityClient implements IdentityDirectory {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record UserHit(String id, String username, String email) {
+    private record UserHit(String id, String username, String email, String firstName, String lastName) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

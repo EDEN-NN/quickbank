@@ -84,7 +84,7 @@ public class SecurityConfig {
                 "http://127.0.0.1:4280",
                 "http://localhost:4200",
                 "http://127.0.0.1:4200"));
-        cors.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "Accept"));
         cors.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

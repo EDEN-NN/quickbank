@@ -1,5 +1,6 @@
 package com.quickbank.bootstrap.identity;
 
+import com.quickbank.bootstrap.identity.IdentityDirectory.StoredProfile;
 import com.quickbank.bootstrap.identity.IdentityDirectory.TokenSet;
 import com.quickbank.common.trace.QuickBankSpans;
 import io.micrometer.observation.ObservationRegistry;
@@ -118,6 +119,31 @@ class IdentityServiceTest {
     }
 
     @Test
+    void profileKeepsADuplicateEmailGeneric() {
+        FakeDirectory directory = new FakeDirectory();
+        directory.emails.add("bruno@quickbank.local");
+        EmailAlreadyRegisteredException ex = assertThrows(
+                EmailAlreadyRegisteredException.class,
+                () -> service(directory, new FakeLookup()).updateProfile(
+                        "user-1", "Bruno@quickbank.local", "Ana", "Lima"));
+        assertEquals("Registration was not accepted.", ex.getMessage());
+        assertFalse(ex.getMessage().toLowerCase().contains("email"));
+        assertTrue(directory.created.isEmpty());
+    }
+
+    @Test
+    void profileUpdateRewritesTheStoredContact() {
+        FakeDirectory directory = new FakeDirectory();
+        FakeLookup lookup = new FakeLookup();
+        StoredProfile updated = service(directory, lookup).updateProfile(
+                "user-1", "Ana.Nova@quickbank.local", "Ana", "Nova");
+        assertEquals("ana.nova@quickbank.local", updated.email());
+        assertEquals("Ana", updated.firstName());
+        assertEquals(1, lookup.rows.size());
+        assertEquals(List.of("profile:ana.nova@quickbank.local"), directory.created);
+    }
+
+    @Test
     void loginReturnsTheKeycloakToken() {
         TokenSet tokens = service(new FakeDirectory(), new FakeLookup()).login("ana", "ana");
 
@@ -148,6 +174,21 @@ class IdentityServiceTest {
         @Override
         public boolean usernameExists(String username) {
             return usernames.contains(username);
+        }
+
+        @Override
+        public boolean emailUsedBySomeoneElse(String email, String userId) {
+            return emails.contains(email);
+        }
+
+        @Override
+        public StoredProfile profile(String userId) {
+            return new StoredProfile(userId, "ana", "ana@quickbank.local", "Ana", "Lima");
+        }
+
+        @Override
+        public void updateProfile(String userId, String email, String firstName, String lastName) {
+            created.add("profile:" + email);
         }
 
         @Override
@@ -187,6 +228,11 @@ class IdentityServiceTest {
         }
 
         @Override
+        public boolean emailTakenByOther(String email, String keycloakUserId) {
+            return emails.contains(email);
+        }
+
+        @Override
         public boolean usernameTaken(String username) {
             return usernames.contains(username);
         }
@@ -197,6 +243,11 @@ class IdentityServiceTest {
                 throw new RegistrationRejectedException();
             }
             rows.add(entity);
+        }
+
+        @Override
+        public void updateContact(String keycloakUserId, String email, String firstName, String lastName) {
+            rows.add(new RegistrationEntity("row", "ana", email, firstName, lastName, keycloakUserId, java.time.Instant.EPOCH));
         }
     }
 }

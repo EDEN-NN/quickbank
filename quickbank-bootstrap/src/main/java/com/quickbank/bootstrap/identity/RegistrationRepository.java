@@ -6,5 +6,9 @@ public interface RegistrationRepository extends JpaRepository<RegistrationEntity
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmailAndKeycloakUserIdNot(String email, String keycloakUserId);
+
     boolean existsByUsername(String username);
+
+    java.util.Optional<RegistrationEntity> findByKeycloakUserId(String keycloakUserId);
 }

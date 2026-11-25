@@ -23,6 +23,8 @@ import com.quickbank.account.persistence.SnapshotRepository;
 import com.quickbank.account.persistence.StatementEntryEntity;
 import com.quickbank.account.persistence.StatementRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,6 +42,8 @@ import java.util.Optional;
 
 @Service
 public class AccountApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountApplicationService.class);
 
     private final AccountRepository accounts;
     private final SnapshotRepository snapshots;
@@ -92,7 +96,7 @@ public class AccountApplicationService {
                         String number = nextAccountNumber();
                         bag.attribute("account.number", number);
                         Instant now = clock.instant();
-                        accounts.save(new AccountEntity(number, user.subject(), user.email(), user.name(), creditLimit, now));
+                        accounts.save(new AccountEntity(number, user.subject(), user.email(), user.name(), creditLimit, creditLimit, now));
                         snapshots.save(new SnapshotEntity(number, Money.ZERO, creditLimit, Money.ZERO, now));
                         var payload = new AccountOpenedPayload(
                                 number,
@@ -142,6 +146,56 @@ public class AccountApplicationService {
 
     public AccountView requireMine(ClientUser user) {
         return findMine(user).orElseThrow(() -> new NotFoundException("Open an account first."));
+    }
+
+    public CreditView credit(ClientUser user) {
+        TransactionTemplate read = readOnly();
+        return read.execute(status -> creditView(requireAccount(user)));
+    }
+
+    public CreditView changeCreditLimit(ClientUser user, String rawLimit) {
+        return transaction.execute(status -> spans.run(
+                "quickbank.account.credit-limit",
+                Map.of("module", "account", "operation", "credit-limit"),
+                Map.of(),
+                bag -> {
+                    AccountEntity account = requireAccount(user);
+                    SnapshotEntity snapshot = snapshots.findById(account.getAccountNumber()).orElseThrow();
+                    BigDecimal requested = CreditLimits.parse(rawLimit);
+                    CreditLimits.ensureWithin(requested, account.getCreditLimitMax(), snapshot.getCreditUsed());
+                    Instant now = clock.instant();
+                    account.setCreditLimit(requested);
+                    snapshot.setCreditLimit(requested);
+                    snapshot.setUpdatedAt(now);
+                    accounts.save(account);
+                    snapshots.save(snapshot);
+                    bag.attribute("account.number", account.getAccountNumber());
+                    bag.attribute("credit.result", "accepted");
+                    log.info("credit limit updated account={}", account.getAccountNumber());
+                    return creditView(account);
+                }));
+    }
+
+    public void updateOwnerContact(String subject, String name, String email) {
+        transaction.executeWithoutResult(status -> accounts.findByOwnerSubject(subject).ifPresent(account -> {
+            String stored = name.length() > 120 ? name.substring(0, 120) : name;
+            account.renameOwner(stored, email);
+            accounts.save(account);
+        }));
+    }
+
+    private AccountEntity requireAccount(ClientUser user) {
+        return accounts.findByOwnerSubject(user.subject())
+                .orElseThrow(() -> new NotFoundException("Open an account first."));
+    }
+
+    private CreditView creditView(AccountEntity account) {
+        SnapshotEntity snapshot = snapshots.findById(account.getAccountNumber()).orElseThrow();
+        return new CreditView(
+                account.getAccountNumber(),
+                snapshot.getCreditLimit(),
+                account.getCreditLimitMax(),
+                snapshot.getCreditUsed());
     }
 
     public List<StatementLine> statement(ClientUser user) {
@@ -298,6 +352,17 @@ public class AccountApplicationService {
             String ownerEmail,
             BigDecimal cashAvailable,
             BigDecimal creditLimit,
+            BigDecimal creditUsed
+    ) {
+        public BigDecimal creditAvailable() {
+            return creditLimit.subtract(creditUsed).setScale(2, RoundingMode.UNNECESSARY);
+        }
+    }
+
+    public record CreditView(
+            String accountNumber,
+            BigDecimal creditLimit,
+            BigDecimal creditLimitMax,
             BigDecimal creditUsed
     ) {
         public BigDecimal creditAvailable() {
