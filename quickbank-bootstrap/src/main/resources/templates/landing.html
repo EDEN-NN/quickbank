@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap narrow">
+    <p class="eyebrow">Simulated bank</p>
+    <h1>Cash and credit, on a ledger you can trace.</h1>
+    <p class="lede">Sign in with Keycloak, open an account, deposit cash, and transfer it to the other demo customer. Payment processing and email are mocks. Nothing on this screen moves real money.</p>
+    <a class="button" href="/oauth2/authorization/keycloak">Sign in with Keycloak</a>
+    <section class="card">
+        <h2>Demo users</h2>
+        <p>Both have the realm role <span class="mono">CLIENT</span>. Neither has an account until you open one.</p>
+        <ul class="users">
+            <li><strong>ana</strong> / ana <span>ana@quickbank.local</span></li>
+            <li><strong>bruno</strong> / bruno <span>bruno@quickbank.local</span></li>
+        </ul>
+        <p class="muted">Use a second browser profile for the counterparty. Transfers need that person's 8-digit account number.</p>
+    </section>
+</main>
+</body>
+</html>

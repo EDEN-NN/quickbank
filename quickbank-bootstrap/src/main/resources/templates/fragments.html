@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">QuickBank</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&amp;family=Outfit:wght@400;500;600&amp;display=swap">
+    <link rel="stylesheet" href="/quickbank.css">
+</head>
+<body>
+<header class="site" th:fragment="header">
+    <a class="mark" href="/">QuickBank</a>
+    <nav>
+        <a sec:authorize="isAuthenticated()" href="/account">Account</a>
+        <a sec:authorize="isAuthenticated()" href="/account/statement">Statement</a>
+        <a sec:authorize="isAuthenticated()" href="/lab">Dynatrace lab</a>
+        <a sec:authorize="!isAuthenticated()" href="/oauth2/authorization/keycloak">Sign in</a>
+    </nav>
+    <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post">
+        <button class="quiet" type="submit">Sign out</button>
+    </form>
+</header>
+</body>
+</html>

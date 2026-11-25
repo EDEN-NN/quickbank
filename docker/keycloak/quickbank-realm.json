@@ -1,0 +1,130 @@
+{
+  "realm": "quickbank",
+  "displayName": "QuickBank",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 3600,
+  "roles": {
+    "realm": [
+      {
+        "name": "CLIENT",
+        "description": "QuickBank customer",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "quickbank-web",
+      "name": "QuickBank web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "quickbank-web-secret",
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:8088",
+      "baseUrl": "http://localhost:8088",
+      "redirectUris": [
+        "http://localhost:8088/*",
+        "http://127.0.0.1:8088/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8088",
+        "http://127.0.0.1:8088"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8088/*##http://127.0.0.1:8088/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "quickbank-email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "quickbank-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "ana",
+      "email": "ana@quickbank.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Ana",
+      "lastName": "Lima",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ana",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["CLIENT"]
+    },
+    {
+      "username": "bruno",
+      "email": "bruno@quickbank.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Bruno",
+      "lastName": "Costa",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bruno",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["CLIENT"]
+    }
+  ]
+}

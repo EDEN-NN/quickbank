@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — Deposit')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap narrow">
+    <section class="card" th:if="${missing}">
+        <h1>That deposit is not on this login.</h1>
+        <p>It may belong to the other demo user, or the id is wrong.</p>
+        <a class="button" href="/account">Back to your account</a>
+    </section>
+    <section class="card" th:if="${deposit != null}">
+        <p class="eyebrow">Mock payment</p>
+        <h1 th:text="${pending} ? 'Waiting on the mock payment' : 'Deposit posted'">Deposit</h1>
+        <p th:if="${pending}">No payment provider is called. The payment module waits a moment, approves the command, and the ledger posts the cash. This page refreshes until that happens.</p>
+        <p th:unless="${pending}">The ledger credited this account. The statement updates as soon as the account projection consumes the event.</p>
+        <dl class="facts">
+            <div><dt>Status</dt><dd th:text="${deposit.status}">PENDING</dd></div>
+            <div><dt>Amount</dt><dd th:text="${deposit.currency + ' ' + deposit.amount}">BRL 10.00</dd></div>
+            <div><dt>Account</dt><dd class="mono" th:text="${deposit.accountNumber}">10000001</dd></div>
+            <div><dt>Deposit id</dt><dd class="mono" th:text="${deposit.depositId}">id</dd></div>
+        </dl>
+        <a class="button" th:href="@{/account(watch=1)}">Back to your account</a>
+    </section>
+</main>
+<script th:if="${pending}">setTimeout(function () { window.location.reload(); }, 1000);</script>
+</body>
+</html>

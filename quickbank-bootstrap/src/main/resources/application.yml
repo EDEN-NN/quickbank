@@ -1,0 +1,129 @@
+server:
+  port: ${SERVER_PORT:8088}
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: quickbank
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/quickbank?characterEncoding=UTF-8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    username: ${SPRING_DATASOURCE_USERNAME:quickbank}
+    password: ${SPRING_DATASOURCE_PASSWORD:quickbank}
+    hikari:
+      pool-name: QuickBankHikari
+      # One process: web requests, Kafka listeners, and the outbox relay share this pool.
+      # 10 is enough for that mix and stays well under MySQL's default max_connections (151).
+      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:10}
+      # Keep two connections warm so the first request after a quiet period does not pay for a new TCP handshake.
+      # Leaving the other eight idle would just occupy MySQL threads on a laptop.
+      minimum-idle: ${HIKARI_MINIMUM_IDLE:2}
+      # Fail the request in 3s when the pool is exhausted instead of blocking for Hikari's 30s default.
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:3000}
+      # Drop connections that sit above minimum-idle for 10 minutes. Must stay below max-lifetime.
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}
+      # Recycle every 30 minutes, comfortably inside MySQL wait_timeout (8h) and before typical NAT idle drops.
+      max-lifetime: ${HIKARI_MAX_LIFETIME:1800000}
+      # Ping idle connections every 5 minutes so MySQL and the network do not silently kill them.
+      # Must be lower than both idle-timeout and max-lifetime.
+      keepalive-time: ${HIKARI_KEEPALIVE_TIME:300000}
+      # Log a stack trace if a connection is checked out for more than 20s. Business transactions are much shorter;
+      # the payment mock sleeps outside a transaction, so this should stay quiet unless a pool leak is introduced.
+      leak-detection-threshold: ${HIKARI_LEAK_DETECTION_THRESHOLD:20000}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      fail-fast: false
+    consumer:
+      group-id: quickbank
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    listener:
+      auto-startup: true
+      observation-enabled: true
+      missing-topics-fatal: false
+    template:
+      observation-enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${KEYCLOAK_CLIENT_ID:quickbank-web}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:quickbank-web-secret}
+            authorization-grant-type: authorization_code
+            scope: openid,profile,email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/auth}
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/token}
+            jwk-set-uri: ${QUICKBANK_JWK_SET_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/certs}
+            user-info-uri: ${KEYCLOAK_USERINFO_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/userinfo}
+            user-name-attribute: preferred_username
+  task:
+    scheduling:
+      pool:
+        size: 4
+
+quickbank:
+  account:
+    credit-limit: ${QUICKBANK_CREDIT_LIMIT:2000.00}
+  payment:
+    mock-delay-ms: ${QUICKBANK_PAYMENT_MOCK_DELAY_MS:750}
+  outbox:
+    delay-ms: ${QUICKBANK_OUTBOX_DELAY_MS:250}
+    batch-size: ${QUICKBANK_OUTBOX_BATCH_SIZE:40}
+  security:
+    # iss claim the browser-facing Keycloak puts on tokens. The app fetches keys from jwk-set-uri,
+    # which is the in-network address when running under Compose.
+    issuer: ${QUICKBANK_ISSUER:http://localhost:8080/realms/quickbank}
+    jwk-set-uri: ${QUICKBANK_JWK_SET_URI:http://localhost:8080/realms/quickbank/protocol/openid-connect/certs}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    key-values:
+      application: quickbank
+
+springdoc:
+  packages-to-scan: com.quickbank.account.api,com.quickbank.ledger.api
+  override-with-generic-response: false
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    persist-authorization: true
+
+logging:
+  pattern:
+    correlation: "[%X{traceId:-},%X{spanId:-}] "
+  level:
+    com.quickbank: INFO
+    com.quickbank.mock: INFO

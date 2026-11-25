@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — access denied')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap narrow">
+    <h1>This login cannot use QuickBank.</h1>
+    <p>The account is signed in, but the token does not include the <span class="mono">CLIENT</span> realm role. The imported demo users ana and bruno both have it.</p>
+    <form th:action="@{/logout}" method="post">
+        <button class="button" type="submit">Sign out</button>
+    </form>
+</main>
+</body>
+</html>

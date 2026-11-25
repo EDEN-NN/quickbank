@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — Account')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap">
+    <section class="banner bad" th:if="${errorDetail}">
+        <h2 th:text="${errorTitle}">That did not go through</h2>
+        <p th:text="${errorDetail}"></p>
+    </section>
+    <section class="banner good" th:if="${notice}">
+        <p th:text="${notice}"></p>
+    </section>
+
+    <section th:if="${account == null}" class="card">
+        <p class="eyebrow">No account yet</p>
+        <h1>Open a QuickBank account.</h1>
+        <p>It takes a second. Cash starts at R$ 0,00 and the credit line is R$ 2.000,00. Credit used starts at zero. Transfers spend cash, not credit. We do not create this account until you ask.</p>
+        <form method="post" th:action="@{/account}">
+            <button type="submit">Open my account</button>
+        </form>
+    </section>
+
+    <section th:if="${account != null}">
+        <p class="eyebrow">Signed in as <span th:text="${account.ownerName}">ana</span></p>
+        <h1>Account <span class="mono" th:text="${account.accountNumber}">10000001</span></h1>
+        <p class="muted">Times on the statement are America/Sao_Paulo. Cash is what you can transfer. Credit is a separate snapshot and is not spent in this demo.</p>
+        <div class="balances">
+            <article class="balance cash"><span>Cash available</span><div class="figure" th:text="${cash}">R$ 0,00</div></article>
+            <article class="balance credit"><span>Credit limit</span><div class="figure" th:text="${creditLimit}">R$ 2.000,00</div></article>
+            <article class="balance"><span>Credit used</span><div class="figure" th:text="${creditUsed}">R$ 0,00</div></article>
+            <article class="balance"><span>Credit available</span><div class="figure" th:text="${creditAvailable}">R$ 2.000,00</div></article>
+        </div>
+        <div class="split">
+            <form class="card" method="post" th:action="@{/deposits}">
+                <h2>Deposit cash</h2>
+                <p class="muted">The mock payment port waits a moment and always approves. The balance updates after the ledger posts.</p>
+                <input type="hidden" name="idempotencyKey" th:value="${depositKey}">
+                <label>Amount in BRL
+                    <input name="amount" inputmode="decimal" autocomplete="off" required placeholder="100.00" th:value="${depositAmount}">
+                </label>
+                <button type="submit">Deposit</button>
+            </form>
+            <form class="card" method="post" th:action="@{/transfers}">
+                <h2>Transfer</h2>
+                <p class="muted">Use the other person's account number. You cannot transfer to yourself, and cash that is not there is rejected.</p>
+                <input type="hidden" name="idempotencyKey" th:value="${transferKey}">
+                <label>To account
+                    <input name="toAccountNumber" inputmode="numeric" autocomplete="off" required placeholder="10000002" th:value="${transferTo}">
+                </label>
+                <label>Amount in BRL
+                    <input name="amount" inputmode="decimal" autocomplete="off" required placeholder="25.00" th:value="${transferAmount}">
+                </label>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+        <section class="card" style="margin-top: 1rem">
+            <h2>Recent movements</h2>
+            <p th:if="${#lists.isEmpty(rows)}">No movements yet. A deposit or a transfer will show up here with the running cash balance.</p>
+            <table class="statement" th:if="${!#lists.isEmpty(rows)}">
+                <thead>
+                <tr><th>When</th><th>Type</th><th>Amount</th><th>Counterparty</th><th>Running balance</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}">
+                    <td th:attr="data-label='When'" th:text="${row.when}">24 Nov 2026, 12:00</td>
+                    <td th:attr="data-label='Type'" th:text="${row.type}">Deposit</td>
+                    <td th:attr="data-label='Amount'" th:text="${row.amount}" th:classappend="${row.outgoing} ? 'outgoing'">+ R$ 10,00</td>
+                    <td th:attr="data-label='Counterparty'" class="mono" th:text="${row.counterparty}">External deposit</td>
+                    <td th:attr="data-label='Running balance'" th:text="${row.runningBalance}">R$ 10,00</td>
+                </tr>
+                </tbody>
+            </table>
+            <p><a href="/account/statement">Full statement</a></p>
+        </section>
+    </section>
+</main>
+<script th:if="${param.containsKey('watch')}">
+    setTimeout(function () { window.location.replace('/account'); }, 1200);
+</script>
+</body>
+</html>

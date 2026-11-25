@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — Statement')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap">
+    <p class="eyebrow">Extract</p>
+    <h1>Statement for <span class="mono" th:text="${account.accountNumber}">10000001</span></h1>
+    <p class="muted">Dated movements with type, amount, counterparty, and the cash balance after each one. Times are <span th:text="${zone}">America/Sao_Paulo</span>.</p>
+    <section class="card">
+        <p th:if="${#lists.isEmpty(rows)}">No movements yet. Deposit cash or receive a transfer and the line will appear here, oldest first.</p>
+        <table class="statement" th:if="${!#lists.isEmpty(rows)}">
+            <thead>
+            <tr><th>When</th><th>Type</th><th>Amount</th><th>Counterparty</th><th>Running balance</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}">
+                <td th:attr="data-label='When'" th:text="${row.when}">24 Nov 2026, 12:00</td>
+                <td th:attr="data-label='Type'" th:text="${row.type}">Deposit</td>
+                <td th:attr="data-label='Amount'" th:text="${row.amount}" th:classappend="${row.outgoing} ? 'outgoing'">+ R$ 10,00</td>
+                <td th:attr="data-label='Counterparty'" class="mono" th:text="${row.counterparty}">External deposit</td>
+                <td th:attr="data-label='Running balance'" th:text="${row.runningBalance}">R$ 10,00</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

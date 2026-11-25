@@ -1,0 +1,146 @@
+{
+  "uid": "quickbank-local",
+  "title": "QuickBank",
+  "tags": ["quickbank"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "account",
+        "label": "Número da conta",
+        "type": "textbox",
+        "current": { "text": "10000001", "value": "10000001" },
+        "options": [{ "text": "10000001", "value": "10000001", "selected": true }],
+        "query": "10000001"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Como filtrar",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "Isto é Grafana local, não a interface de um tenant Dynatrace. Os spans vêm do collector (os mesmos que o Jaeger em :16686 recebe). Os logs são o stdout do processo `app`.\n\nCole no Explore. Troque o número da conta no campo acima ou no texto.\n\n**Número da conta** (Tempo): `{ span.account.number = \"$account\" }`\n\n**Depósito** (Tempo): `{ span.movement.type = \"DEPOSIT\" }`\n\n**Transferência** (Tempo): `{ name = \"quickbank.ledger.transfer\" }`\n\n**Mock de pagamento** (Tempo): `{ name = \"quickbank.payment.mock\" && span.mock = \"true\" }`\n\n**Erros** (Tempo): `{ status = error }`\n\n**Logs** (Loki), mesma ordem: `{service=\"app\"} |= \"$account\"` · `{service=\"app\"} |~ \"DEPOSIT|MOCK payment\"` · `{service=\"app\"} |~ \"TRANSFER|transfer\"` · `{service=\"app\"} |= \"MOCK payment\"` · `{service=\"app\"} |~ \"ERROR|Exception|insufficient-funds|account-exists|idempotency-conflict\"`"
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Spans da conta",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ span.account.number = \"$account\" }",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Logs da conta",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "showTime": true, "showLabels": false, "wrapLogMessage": true, "dedupStrategy": "none", "sortOrder": "Descending", "enableLogDetails": true },
+      "targets": [{ "refId": "A", "expr": "{service=\"app\"} |= \"$account\"" }]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Depósito",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ span.movement.type = \"DEPOSIT\" }",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Transferência",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ name = \"quickbank.ledger.transfer\" }",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Mock de pagamento",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ name = \"quickbank.payment.mock\" && span.mock = \"true\" }",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Logs do mock de pagamento",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "showTime": true, "showLabels": false, "wrapLogMessage": true, "dedupStrategy": "none", "sortOrder": "Descending", "enableLogDetails": true },
+      "targets": [{ "refId": "A", "expr": "{service=\"app\"} |= \"MOCK payment\"" }]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Erros",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ status = error }",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "logs",
+      "title": "Logs de erro",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "showTime": true, "showLabels": false, "wrapLogMessage": true, "dedupStrategy": "none", "sortOrder": "Descending", "enableLogDetails": true },
+      "targets": [{ "refId": "A", "expr": "{service=\"app\"} |~ \"ERROR|Exception|insufficient-funds|account-exists|idempotency-conflict\"" }]
+    }
+  ]
+}

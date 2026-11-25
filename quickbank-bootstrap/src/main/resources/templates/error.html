@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — error')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap narrow">
+    <h1>Something broke on our side.</h1>
+    <p>The request did not finish. Try it again. If you were moving cash, use the same screen rather than guessing whether it posted — the statement is the record.</p>
+    <a class="button" href="/account">Back to your account</a>
+</main>
+</body>
+</html>

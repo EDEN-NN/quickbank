@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('QuickBank — Dynatrace lab')}"></head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="wrap">
+    <p class="eyebrow">Observability</p>
+    <h1>Dynatrace lab</h1>
+    <p class="lede" th:if="${!lab.dynatraceConfigured}">Traces are going to the local OpenTelemetry collector and Jaeger. Set DT_OTLP_ENDPOINT and DT_API_TOKEN to send the same spans to a Dynatrace tenant. The app boots without them.</p>
+    <p class="lede" th:if="${lab.dynatraceConfigured}">OTLP is pointed at Dynatrace<span th:if="${!#strings.isEmpty(lab.tenant)}" th:text="${' (' + lab.tenant + ')'}"> (tenant)</span>. The queries below are the ones to paste into Notebooks.</p>
+    <section class="card">
+        <h2>Spans this process emits</h2>
+        <table>
+            <thead><tr><th>Name</th><th>Module</th><th>When</th><th>Attributes</th></tr></thead>
+            <tbody>
+            <tr th:each="span : ${lab.spans}">
+                <td class="mono" th:text="${span.name}">quickbank.account.open</td>
+                <td th:text="${span.module}">account</td>
+                <td th:text="${span.whenEmitted}">when</td>
+                <td th:text="${span.attributes}">attributes</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+    <section class="card" style="margin-top: 1rem" th:each="query : ${lab.queries}">
+        <p class="eyebrow" th:text="${query.id}">account-opened</p>
+        <h2 th:text="${query.title}">Account opened</h2>
+        <p th:text="${query.shows}">what</p>
+        <p class="muted">Filters on <span th:text="${query.filtersOn}">attributes</span></p>
+        <pre th:text="${query.dql}">fetch spans</pre>
+        <p class="muted" th:text="${query.metric}">metric</p>
+    </section>
+    <section class="card" style="margin-top: 1rem">
+        <h2>Recent spans captured in this process</h2>
+        <p th:if="${#lists.isEmpty(lab.recent)}">No QuickBank spans yet. Open an account or move cash, then refresh.</p>
+        <div class="recent">
+            <article th:each="span : ${lab.recent}">
+                <strong class="mono" th:text="${span.name}">quickbank.ledger.transfer</strong>
+                <span th:text="${span.durationMillis + ' ms'}">10 ms</span>
+                <span th:if="${span.error != null}" th:text="${span.error}">error</span>
+                <div class="attrs">
+                    <span th:each="attr : ${span.attributes}" th:text="${attr.key + '=' + attr.value}">module=ledger</span>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+</body>
+</html>
